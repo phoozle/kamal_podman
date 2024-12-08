@@ -1,5 +1,4 @@
-# TODO: consider if base class for container manager needed
-class Kamal::Commands::Podman < Kamal::Commands::Base
+class KamalPodman::Commands::Podman < Kamal::Commands::Base
   def install
     raise "Please see https://podman.io/docs/installation to install Podman"
   end
