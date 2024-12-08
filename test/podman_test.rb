@@ -2,20 +2,22 @@ require "test_helper"
 
 class PodmanTest < ActiveSupport::TestCase
   test "push" do
-    Kamal::Commands::Hook.any_instance.stubs(:hook_exists?).returns(true)
-    hook_variables = { version: 999, service_version: "app@999", hosts: "1.1.1.1,1.1.1.2,1.1.1.3,1.1.1.4", command: "build", subcommand: "push" }
+    with_build_directory do |build_directory|
+      Kamal::Commands::Hook.any_instance.stubs(:hook_exists?).returns(true)
+      hook_variables = { version: 999, service_version: "app@999", hosts: "1.1.1.1,1.1.1.2,1.1.1.3,1.1.1.4", command: "build", subcommand: "push" }
 
-    SSHKit::Backend::Abstract.any_instance.expects(:capture_with_info)
-      .with(:git, "-C", anything, :"rev-parse", :HEAD)
-      .returns(Kamal::Git.revision)
+      SSHKit::Backend::Abstract.any_instance.expects(:capture_with_info)
+        .with(:git, "-C", anything, :"rev-parse", :HEAD)
+        .returns(Kamal::Git.revision)
 
-    SSHKit::Backend::Abstract.any_instance.expects(:capture_with_info)
-      .with(:git, "-C", anything, :status, "--porcelain")
-      .returns("")
+      SSHKit::Backend::Abstract.any_instance.expects(:capture_with_info)
+        .with(:git, "-C", anything, :status, "--porcelain")
+        .returns("")
 
-    run_command("push", "--verbose").tap do |output|
-      assert_match /podman/, output
-      assert_no_match /docker/, output
+      run_command("push", "--verbose").tap do |output|
+        assert_match /podman/, output
+        assert_no_match /docker/, output
+      end
     end
   end
 
@@ -26,7 +28,7 @@ class PodmanTest < ActiveSupport::TestCase
   end
 
   def with_build_directory
-    build_directory = File.join Dir.tmpdir, "kamal-clones", "app-#{pwd_sha}", "kamal"
+    build_directory = File.join Dir.tmpdir, "kamal-clones", "app-#{pwd_sha}", "kamal-podman"
     FileUtils.mkdir_p build_directory
     FileUtils.touch File.join build_directory, "Dockerfile"
     yield build_directory + "/"
