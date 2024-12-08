@@ -22,8 +22,9 @@ You can simply drop in this gem to an existing Kamal based project and start dep
 gem 'kamal_podman', git: 'https://github.com/phoozle/kamal_podman.git', branch: 'master'
 ```
 
-Usage: Follow Kamal's official documentation for the most part but specify Podman as your container runtime in your configurations.
-There will most likely be some differences in the commands due to the inherit nature of how Podman does things compared to Docker and those differences I will document below as I find them.
+## Usage
+Follow [Kamal's](https://kamal-deploy.org) official documentation for the most part.
+There will be some differences in the commands available due to the inherit nature of how Podman does things. I will begin to document these differences as I find them here.
 
 ## Roadmap
 - Complete integration of all Kamal commands with Podman.
