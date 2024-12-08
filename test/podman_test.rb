@@ -28,7 +28,7 @@ class PodmanTest < ActiveSupport::TestCase
   end
 
   def with_build_directory
-    build_directory = File.join Dir.tmpdir, "kamal-clones", "app-#{pwd_sha}", "kamal-podman"
+    build_directory = File.join Dir.tmpdir, "kamal-clones", "app-#{pwd_sha}", "kamal_podman"
     FileUtils.mkdir_p build_directory
     FileUtils.touch File.join build_directory, "Dockerfile"
     yield build_directory + "/"
