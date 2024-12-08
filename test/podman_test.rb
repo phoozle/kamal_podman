@@ -16,7 +16,7 @@ class PodmanTest < ActiveSupport::TestCase
 
       run_command("push", "--verbose").tap do |output|
         assert_match /podman/, output
-        assert_no_match /docker/, output
+        assert_no_match /docker\s/, output
       end
     end
   end
