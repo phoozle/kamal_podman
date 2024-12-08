@@ -3,7 +3,6 @@
 require_relative "kamal_podman/version"
 
 require "kamal"
-require "pry"
 
 module KamalPodman
   class Error < StandardError; end
