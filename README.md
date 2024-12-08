@@ -3,13 +3,13 @@
 ![kamal-podman](https://github.com/user-attachments/assets/52046e04-9145-48c0-aa80-fd8a0872921e)
 
 ## Overview
-Kamal-Podman is a Ruby gem designed to integrate the power of Kamal for deployment management with Podman as the container manager. This gem provides an alternative to Docker for those who prefer or require Podman's daemonless architecture and enhanced security features.
+`kamal_podman` is a Ruby gem designed to integrate the power of Kamal for deployment management with Podman as the container manager. This gem provides an alternative to Docker for those who prefer or require Podman's daemonless architecture and enhanced security features.
 
-Kamal Integration: Kamal-Podman extends the functionality of Kamal, a deployment tool from Basecamp, allowing you to deploy your applications using Kamal's commands and configurations.
+Kamal Integration: Kamal Podman extends the functionality of Kamal, a deployment tool from Basecamp, allowing you to deploy your applications using Kamal's commands and configurations.
 Podman Utilization: Instead of Docker, this gem uses Podman for managing containers, providing a lightweight, user-space focused container runtime.
 
 ## Current State
-Work in Progress: Please note that Kamal-Podman is still under development. Not all features are fully implemented or tested.
+Please note that Kamal Podman is still under development. Not all features are fully implemented or tested.
 Incomplete Features: Some Kamal commands might not translate directly to Podman's API, leading to partial functionality or differing behavior.
 Experimental: The gem is in its experimental phase, and you might encounter bugs or unexpected behaviors.
 
@@ -17,7 +17,10 @@ Experimental: The gem is in its experimental phase, and you might encounter bugs
 
 You can simply drop in this gem to an existing Kamal based project and start deploying with Podman instead. However you will need to run `kamal app remove` and `kamal proxy remove` to avoid any conflicts. Be aware this will completely shutdown and remove your current application.
 
-`gem install kamal-podman` or `bundle add kamal-podman`
+```
+# Gemfile
+gem 'kamal_podman', git: 'https://github.com/phoozle/kamal_podman.git', branch: 'master'
+```
 
 Usage: Follow Kamal's official documentation for the most part but specify Podman as your container runtime in your configurations.
 There will most likely be some differences in the commands due to the inherit nature of how Podman does things compared to Docker and those differences I will document below as I find them.
@@ -36,7 +39,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/phoozle/kamal-podman.
+Bug reports and pull requests are welcome on GitHub at https://github.com/phoozle/kamal_podman.
 
 ## License
 
