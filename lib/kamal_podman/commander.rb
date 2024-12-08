@@ -6,4 +6,8 @@ class KamalPodman::Commander < Kamal::Commander
   def podman
     @podman ||= KamalPodman::Commands::Podman.new(config)
   end
+
+  def docker
+    podman
+  end
 end
