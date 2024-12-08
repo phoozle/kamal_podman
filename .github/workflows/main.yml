@@ -3,7 +3,7 @@ name: Ruby
 on:
   push:
     branches:
-      - master
+      - main
 
   pull_request:
 
@@ -24,4 +24,4 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
       - name: Run the default task
-        run: bundle exec rake
+        run: bundle exec bin/test
