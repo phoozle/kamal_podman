@@ -8,6 +8,9 @@
 Kamal Integration: Kamal Podman extends the functionality of Kamal, a deployment tool from Basecamp, allowing you to deploy your applications using Kamal's commands and configurations.
 Podman Utilization: Instead of Docker, this gem uses Podman for managing containers, providing a lightweight, user-space focused container runtime.
 
+## "Stop Using Docker. Use Open Source Instead" - DevOps Toolbox
+[![YouTube Video](https://img.youtube.com/vi/Z5uBcczJxUY/0.jpg)](https://www.youtube.com/watch?v=Z5uBcczJxUY)
+
 ## Current State
 Please note that Kamal Podman is still under development. Not all features are fully implemented or tested.
 Incomplete Features: Some Kamal commands might not translate directly to Podman's API, leading to partial functionality or differing behavior.
