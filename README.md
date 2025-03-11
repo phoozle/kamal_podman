@@ -16,6 +16,8 @@ Please note that Kamal Podman is still under development. Not all features are f
 Incomplete Features: Some Kamal commands might not translate directly to Podman's API, leading to partial functionality or differing behavior.
 Experimental: The gem is in its experimental phase, and you might encounter bugs or unexpected behaviors.
 
+Kamal base version: `2.3.0`
+
 ## Installation: 
 
 You can simply drop in this gem to an existing Kamal based project and start deploying with Podman instead. However you will need to run `kamal app remove` and `kamal proxy remove` to avoid any conflicts. Be aware this will completely shutdown and remove your current application.
