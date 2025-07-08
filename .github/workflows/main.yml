@@ -1,27 +1,36 @@
-name: Ruby
+name: CI
 
 on:
   push:
     branches:
       - main
-
   pull_request:
+  workflow_dispatch:
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    name: Ruby ${{ matrix.ruby }}
+  test:
     strategy:
+      fail-fast: false
       matrix:
-        ruby:
-          - '3.3.5'
-
+        ruby-version:
+          - "3.4"
+    name: ${{ format('Tests (Ruby {0})', matrix.ruby-version) }}
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Ruby
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby and install gems
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: ${{ matrix.ruby }}
+          ruby-version: ${{ matrix.ruby-version }}
           bundler-cache: true
-      - name: Run the default task
-        run: bundle exec bin/test
+
+      - name: Run RuboCop
+        run: bundle exec rubocop --parallel
+
+      - name: Run tests
+        run: bin/test
+        env:
+          DEBUG: "1"
+          DEBUG_CONTAINER_LOGS: "1"

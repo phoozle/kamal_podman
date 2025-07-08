@@ -41,6 +41,30 @@ There will be some differences in the commands available due to the inherit natu
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `./bin/test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
+### Running Tests
+
+The project includes both unit tests and integration tests that are aligned with the upstream Kamal project:
+
+```bash
+# Run all tests (unit + integration)
+bin/test
+
+# Run only unit tests
+bin/test test/
+
+# Run only integration tests  
+bin/test test/integration/
+
+# Run specific integration test
+bin/test test/integration/main_test.rb --name test_config
+```
+
+### Integration Tests
+
+Integration tests verify that kamal_podman works correctly with real Podman containers. These tests are structured identically to upstream Kamal's integration tests, making it easy for developers to work between both codebases.
+
+The integration tests use Docker Compose to orchestrate test infrastructure with VMs running Podman. See `test/integration/README.md` for detailed information about test alignment with upstream Kamal.
+
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
 ## Contributing

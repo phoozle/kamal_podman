@@ -1,0 +1,37 @@
+name: "kamal-podman-test"
+
+volumes:
+  shared:
+  deployer_bundle:
+
+services:
+  shared:
+    build:
+      context: docker/shared
+    volumes:
+      - shared:/shared
+
+  deployer:
+    privileged: true
+    build:
+      context: docker/deployer
+    environment:
+      - TEST_ID=${TEST_ID:-}
+    volumes:
+      - ../..:/kamal_podman
+      - shared:/shared
+      - deployer_bundle:/usr/local/bundle/
+    depends_on:
+      - vm1
+
+  vm1:
+    privileged: true
+    build:
+      context: docker/vm
+    volumes:
+      - shared:/shared
+    ports:
+      - "2222:22"
+    environment:
+      - TEST_ID=${TEST_ID:-}
+    hostname: vm1
