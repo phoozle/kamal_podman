@@ -1,8 +1,8 @@
 require "bundler/setup"
+require "minitest/autorun" # using #stub that take args
 require "active_support/testing/stream"
 require "debug"
 require "mocha/minitest" # using #stubs that can alter returns
-require "minitest/autorun" # using #stub that take args
 require "kamal_podman"
 require "kamal"
 

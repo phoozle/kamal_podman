@@ -1,0 +1,34 @@
+service: app
+image: nginx:latest
+
+servers:
+  web:
+    hosts:
+      - vm1
+    options:
+      add-host: host.docker.internal:host-gateway
+
+registry:
+  server: registry:4443
+  username: testuser
+  password: testpass
+
+env:
+  clear:
+    CLEAR_TOKEN: "4321"
+    KAMAL_HOST: vm1
+  secret:
+    - SECRET_TOKEN
+
+builder:
+  arch: amd64
+
+ssh:
+  user: root
+  port: 22
+  keepalive: true
+  keepalive_interval: 30
+  log_level: fatal
+
+volumes:
+  - "/tmp/app:/tmp/app"
