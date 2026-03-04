@@ -60,7 +60,7 @@ For commands where Podman's syntax genuinely differs from Docker, individual met
 |---|---|
 | `KamalPodman::Commander` | Extends `Kamal::Commander`, returns Podman-aware builder/commands |
 | `KamalPodman::Commands::Podman` | Podman system commands (`installed?`, `running?`, `create_network`) |
-| `KamalPodman::Commands::Builder` | Podman-based builder (local builds only, no buildx) |
+| `KamalPodman::Commands::Builder` | Podman-based builder with validation (rejects remote/multi-arch/cloud) |
 | `KamalPodman::Commands::Builder::Local` | `podman build` + `podman push` (stubs out buildx lifecycle) |
 | `KamalPodman::Cli::Server` | Podman-aware server bootstrap (checks for Podman, not Docker) |
 
@@ -157,7 +157,7 @@ GitHub Actions (`.github/workflows/main.yml`):
 ## Coding Conventions
 
 - **Style**: `rubocop-rails-omakase` (Basecamp's opinionated RuboCop config)
-- **Frozen string literals**: Used in main library files; not consistently applied in overrides
+- **Frozen string literals**: Applied consistently across all library files
 - **Naming**: Standard Ruby — `snake_case` methods, `CamelCase` classes
 - **Override files**: Keep minimal — typically 3–5 lines of actual code per file
 - **Test style**: Minitest assertions, `ActiveSupport::TestCase` base, mocha stubs
@@ -189,4 +189,6 @@ This is the highest-risk change. When Kamal releases a new version:
 - **Load order**: Never `require` override files — they must be loaded via `Dir.glob` + `load()` after Zeitwerk setup
 - **Auto-discovery test**: `test/auto_discovery_test.rb` catches any `Kamal::Commands::Base` subclass where `docker()` doesn't return a podman command — run this after Kamal upgrades
 - **Registry prefixes**: Podman needs explicit `docker.io/` for Docker Hub images — always ensure image references include the registry
-- **No buildx**: Podman doesn't have Docker buildx — `create`, `inspect_builder`, and `remove` are stubs. Only local single-arch builds are currently supported
+- **No buildx**: Podman doesn't have Docker buildx — `create`, `inspect_builder`, and `remove` are stubs. Only local single-arch builds are supported
+- **Unsupported features**: `Builder#validate!` raises `KamalPodman::Error` for remote builders, multi-arch builds, and cloud builders at initialization time
+- **Version compatibility**: `KamalPodman::KAMAL_COMPATIBLE_VERSION` is checked at load time — warns if Kamal version doesn't match the tested pin
