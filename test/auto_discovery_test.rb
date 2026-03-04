@@ -34,17 +34,9 @@ class AutoDiscoveryTest < ActiveSupport::TestCase
         next
       end
 
-      begin
-        result = instance.docker(:version)
-        # If docker didn't raise, it should return a podman command
-        if result.is_a?(Array) && result.first == :podman
-          # Good — docker delegates to podman
-        else
-          uncovered << "#{klass.name}#docker returned #{result.inspect} instead of podman command"
-        end
-      rescue RuntimeError => e
-        # Base override raises "Docker only command, podman not supported"
-        assert_match(/podman not supported/, e.message, "#{klass.name}#docker raised unexpected error: #{e.message}")
+      result = instance.docker(:version)
+      unless result.is_a?(Array) && result.first == :podman
+        uncovered << "#{klass.name}#docker returned #{result.inspect} instead of podman command"
       end
     end
 

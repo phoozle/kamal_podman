@@ -1,8 +1,4 @@
 Kamal::Commands::Prune.class_eval do
-  def docker(*args)
-    podman(*args)
-  end
-
   def tagged_images
     pipe \
       podman(:image, :ls, *service_filter, "--format", "'{{.ID}} {{.Repository}}:{{.Tag}}'"),

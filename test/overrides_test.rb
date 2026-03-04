@@ -8,9 +8,8 @@ class BaseOverrideTest < ActiveSupport::TestCase
     }
   end
 
-  test "docker raises to catch missed overrides" do
-    error = assert_raises(RuntimeError) { new_command.docker(:ps) }
-    assert_match(/podman not supported/, error.message)
+  test "docker delegates to podman" do
+    assert_equal [ :podman, :ps ], new_command.docker(:ps)
   end
 
   test "podman" do
@@ -87,22 +86,6 @@ class AppOverrideTest < ActiveSupport::TestCase
 end
 
 class AppModulesOverrideTest < ActiveSupport::TestCase
-  test "App::Containers overrides docker" do
-    assert Kamal::Commands::App::Containers.method_defined?(:docker, false)
-  end
-
-  test "App::Proxy overrides docker" do
-    assert Kamal::Commands::App::Proxy.method_defined?(:docker, false)
-  end
-
-  test "App::Assets overrides docker" do
-    assert Kamal::Commands::App::Assets.method_defined?(:docker, false)
-  end
-
-  test "App::Images overrides docker" do
-    assert Kamal::Commands::App::Images.method_defined?(:docker, false)
-  end
-
   test "App::Logging overrides logs" do
     assert Kamal::Commands::App::Logging.method_defined?(:logs, false)
   end

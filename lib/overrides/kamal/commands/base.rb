@@ -1,6 +1,6 @@
 Kamal::Commands::Base.class_eval do
   def docker(*args)
-    raise "Docker only command, podman not supported"
+    podman(*args)
   end
 
   def podman(*args)
