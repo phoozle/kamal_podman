@@ -17,6 +17,10 @@ class QuadletArgParserTest < ActiveSupport::TestCase
     assert_includes result, "Environment=BAZ=qux"
   end
 
+  test "parses -e shorthand" do
+    assert_includes parse("-e", "FOO=bar"), "Environment=FOO=bar"
+  end
+
   test "parses --env-file" do
     assert_includes parse("--env-file", "/path/to/env"), "EnvironmentFile=/path/to/env"
   end
@@ -65,6 +69,11 @@ class QuadletArgParserTest < ActiveSupport::TestCase
 
   test "skips --restart=value" do
     result = parse("--restart=unless-stopped", "--name", "app")
+    assert_equal [ "ContainerName=app" ], result
+  end
+
+  test "skips --restart with space-joined value" do
+    result = parse("--restart unless-stopped", "--name", "app")
     assert_equal [ "ContainerName=app" ], result
   end
 
@@ -224,6 +233,7 @@ class QuadletCommandsTest < ActiveSupport::TestCase
     assert_match(/\[Service\]/, content)
     assert_match(/Restart=always/, content)
     assert_match(/RestartSec=5s/, content)
+    assert_match(/WorkingDirectory=\/root/, content)
     assert_match(/\[Install\]/, content)
     assert_match(/WantedBy=default\.target/, content)
   end

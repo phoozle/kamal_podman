@@ -17,7 +17,7 @@ module KamalPodman::Commands::Quadlet::ArgParser
       when "--network"
         directives << "Network=#{args[i + 1]}"
         i += 2
-      when "--env"
+      when "--env", "-e"
         directives << "Environment=#{args[i + 1]}"
         i += 2
       when "--env-file"
@@ -29,7 +29,7 @@ module KamalPodman::Commands::Quadlet::ArgParser
       when "--publish", "-p"
         directives << "PublishPort=#{args[i + 1]}"
         i += 2
-      when "--label"
+      when "--label", "-l"
         directives << "Label=#{args[i + 1]}"
         i += 2
       when "--log-opt"
@@ -45,7 +45,7 @@ module KamalPodman::Commands::Quadlet::ArgParser
         i += 1
       when "--restart"
         i += 2
-      when /\A--restart=.+/
+      when /\A--restart[= ].+/
         i += 1
       when /\A--(.+)=(.+)\z/
         directives << "PodmanArgs=#{args[i]}"

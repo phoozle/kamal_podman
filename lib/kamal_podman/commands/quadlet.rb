@@ -36,6 +36,7 @@ class KamalPodman::Commands::Quadlet < Kamal::Commands::Base
       [Service]
       Restart=always
       RestartSec=5s
+      WorkingDirectory=#{working_directory}
 
       [Install]
       WantedBy=default.target
@@ -73,6 +74,10 @@ class KamalPodman::Commands::Quadlet < Kamal::Commands::Base
   private
     def rootful?
       config.ssh.user == "root"
+    end
+
+    def working_directory
+      rootful? ? "/root" : "$HOME"
     end
 
     def systemctl(*args)
