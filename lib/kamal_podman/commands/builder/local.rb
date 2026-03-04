@@ -11,10 +11,6 @@ class KamalPodman::Commands::Builder::Local < Kamal::Commands::Builder::Base
       podman(:push, config.absolute_image)
   end
 
-  def docker(*args)
-    podman(*args)
-  end
-
   def create; end
   def inspect_builder; end
   def remove; end
