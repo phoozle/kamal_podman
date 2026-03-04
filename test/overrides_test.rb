@@ -157,6 +157,12 @@ class PruneOverrideTest < ActiveSupport::TestCase
     }
   end
 
+  test "dangling images" do
+    assert_equal \
+      "podman image prune --force --filter label=service=app",
+      new_command.dangling_images.join(" ")
+  end
+
   test "tagged images" do
     assert_equal \
       "podman image ls --filter label=service=app --format '{{.ID}} {{.Repository}}:{{.Tag}}' | grep -v -w \"$(podman container ls -a --format '{{.Image}}\\|' --filter label=service=app | tr -d '\\n')docker.io/dhh/app:latest\\|docker.io/dhh/app:<none>\" | while read image tag; do podman rmi $tag; done",
