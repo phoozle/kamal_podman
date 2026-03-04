@@ -17,7 +17,7 @@ class QuadletDeployTest < IntegrationTest
     assert_match /\[Unit\]/, container_file
     assert_match /\[Container\]/, container_file
     assert_match /Image=/, container_file
-    assert_match /Pull=always/, container_file
+    assert_match /Pull=never/, container_file
     assert_match /ContainerName=#{container_name}/, container_file
 
     # Verify the systemd service is active

@@ -226,7 +226,7 @@ class QuadletCommandsTest < ActiveSupport::TestCase
     assert_match(/Description=app-web-999/, content)
     assert_match(/\[Container\]/, content)
     assert_match(/Image=docker\.io\/dhh\/app:999/, content)
-    assert_match(/Pull=always/, content)
+    assert_match(/Pull=never/, content)
     assert_match(/ContainerName=app-web-999/, content)
     assert_match(/Network=kamal/, content)
     assert_match(/Environment=FOO=bar/, content)
@@ -247,6 +247,37 @@ class QuadletCommandsTest < ActiveSupport::TestCase
     )
 
     assert_match(/Exec=bin\/jobs/, content)
+  end
+
+  test "container_file_content resolves relative EnvironmentFile to absolute" do
+    content = new_command.container_file_content(
+      unit_name: "app-web-999",
+      image: "docker.io/dhh/app:999",
+      run_args: [ "--name", "app-web-999", "--env-file", ".kamal/apps/app/env/roles/web.env" ]
+    )
+
+    assert_match(%r{EnvironmentFile=/root/\.kamal/apps/app/env/roles/web\.env}, content)
+    assert_no_match(/EnvironmentFile=\.kamal/, content)
+  end
+
+  test "container_file_content preserves absolute EnvironmentFile" do
+    content = new_command.container_file_content(
+      unit_name: "app-web-999",
+      image: "docker.io/dhh/app:999",
+      run_args: [ "--name", "app-web-999", "--env-file", "/etc/app/env" ]
+    )
+
+    assert_match(%r{EnvironmentFile=/etc/app/env}, content)
+  end
+
+  test "container_file_content resolves relative EnvironmentFile for rootless" do
+    content = new_command(ssh_user: "deploy").container_file_content(
+      unit_name: "app-web-999",
+      image: "docker.io/dhh/app:999",
+      run_args: [ "--name", "app-web-999", "--env-file", ".kamal/apps/app/env/roles/web.env" ]
+    )
+
+    assert_match(%r{EnvironmentFile=\$HOME/\.kamal/apps/app/env/roles/web\.env}, content)
   end
 
   test "container_file_content without cmd omits Exec" do
