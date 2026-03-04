@@ -12,7 +12,7 @@ class IntegrationTest < ActiveSupport::TestCase
 
   teardown do
     if !passed? && ENV["DEBUG_CONTAINER_LOGS"]
-      [ :deployer, :vm1, :shared ].each do |container|
+      [ :deployer, :vm1, :shared, :registry ].each do |container|
         puts
         puts "Logs for #{container}:"
         docker_compose :logs, container
@@ -46,7 +46,7 @@ class IntegrationTest < ActiveSupport::TestCase
   end
 
   def latest_app_version
-    deployer_exec("git rev-parse HEAD", capture: true, workdir: "/#{@app}")
+    deployer_exec("git rev-parse HEAD", capture: true, workdir: "/#{@app}").strip
   end
 
   def wait_for_healthy(timeout: 90)

@@ -1,11 +1,8 @@
-FROM nginx:latest
+FROM registry:5000/nginx:latest
 
-RUN echo "Hello from Kamal Podman Test App!" > /usr/share/nginx/html/index.html
-
-RUN echo '{"version": "'$(date +%s)'", "host": "'$(hostname)'"}' > /usr/share/nginx/html/version
-
-# Add health check endpoint
-RUN echo "OK" > /usr/share/nginx/html/up
+ARG COMMIT_SHA
+RUN echo $COMMIT_SHA > /usr/share/nginx/html/version && \
+    echo "Up!" > /usr/share/nginx/html/up
 
 EXPOSE 80
 

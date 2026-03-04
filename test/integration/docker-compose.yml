@@ -2,6 +2,7 @@ name: "kamal-podman-test"
 
 volumes:
   shared:
+  registry:
   deployer_bundle:
 
 services:
@@ -10,6 +11,14 @@ services:
       context: docker/shared
     volumes:
       - shared:/shared
+
+  registry:
+    build:
+      context: docker/registry
+    volumes:
+      - registry:/var/lib/registry
+    ports:
+      - "5000:5000"
 
   deployer:
     privileged: true
@@ -23,6 +32,7 @@ services:
       - deployer_bundle:/usr/local/bundle/
     depends_on:
       - vm1
+      - registry
 
   vm1:
     privileged: true

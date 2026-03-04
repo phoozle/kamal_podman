@@ -1,6 +1,5 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
-# Set environment to prevent interactive prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Update and install essential packages
@@ -8,13 +7,7 @@ RUN apt-get update && \
     apt-get install -y \
     openssh-server \
     curl \
-    git \
-    sudo \
-    systemd \
-    systemd-sysv \
     ca-certificates \
-    gnupg \
-    lsb-release \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Podman
@@ -25,31 +18,22 @@ RUN apt-get update && \
 # Configure SSH
 RUN mkdir -p /var/run/sshd && \
     ssh-keygen -A && \
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-    sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/' /etc/ssh/sshd_config && \
-    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+    printf '\nPermitRootLogin yes\nPubkeyAuthentication yes\nPasswordAuthentication no\n' >> /etc/ssh/sshd_config
 
 # Create root SSH directory and link authorized_keys from shared volume
 RUN mkdir -p /root/.ssh && \
     chmod 700 /root/.ssh && \
     ln -s /shared/ssh/id_rsa.pub /root/.ssh/authorized_keys
 
-# Configure Podman
+# Configure Podman for running inside Docker (cgroupfs manager, no events logger)
 RUN mkdir -p /etc/containers && \
-    echo 'unqualified-search-registries = ["docker.io"]' > /etc/containers/registries.conf
+    printf 'unqualified-search-registries = ["docker.io"]\n\n[[registry]]\nlocation = "registry:5000"\ninsecure = true\n' > /etc/containers/registries.conf && \
+    printf '[engine]\ncgroup_manager = "cgroupfs"\nevents_logger = "file"\n\n[containers]\npids_limit = 0\n' > /etc/containers/containers.conf
 
-# Create a simple health check script
-RUN echo '#!/bin/bash\necho "VM is healthy"' > /health_check.sh && \
-    chmod +x /health_check.sh
+COPY boot.sh .
 
-# Configure systemd
-RUN systemctl enable ssh
+HEALTHCHECK --interval=1s CMD pgrep sleep
 
-# Add health check that ensures SSH is running
-HEALTHCHECK --interval=1s CMD pgrep sshd
-
-# Expose SSH port
 EXPOSE 22
 
-# Use systemd as init system
-CMD ["/lib/systemd/systemd"]
+CMD ["./boot.sh"]

@@ -39,12 +39,12 @@ class MainTest < IntegrationTest
     # Test configuration loading and validation
     # Adapted from upstream but simplified for our current setup
 
-    config_content = deployer_exec("cat /app/deploy.yml", capture: true)
+    config_content = deployer_exec("cat /app/config/deploy.yml", capture: true)
     config = YAML.load(config_content)
 
     assert_equal "app", config["service"]
-    assert_equal [ "vm1" ], Array(config["servers"]["web"]["hosts"] || config["servers"])
-    assert_equal "nginx:latest", config["image"]
+    assert_equal [ "vm1" ], Array(config["servers"])
+    assert_equal "app", config["image"]
   end
 
   test "podman commands" do

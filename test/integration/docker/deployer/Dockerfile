@@ -11,6 +11,10 @@ RUN apt-get update && \
     apt-get install -y podman && \
     rm -rf /var/lib/apt/lists/*
 
+# Configure Podman to use local registry (insecure) and Docker Hub
+RUN mkdir -p /etc/containers && \
+    printf 'unqualified-search-registries = ["docker.io"]\n\n[[registry]]\nlocation = "registry:5000"\ninsecure = true\n' > /etc/containers/registries.conf
+
 # Copy test applications and setup scripts
 COPY *.sh .
 COPY app/ app/
