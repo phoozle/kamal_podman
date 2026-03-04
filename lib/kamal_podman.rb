@@ -6,6 +6,13 @@ require "kamal"
 
 module KamalPodman
   class Error < StandardError; end
+
+  KAMAL_COMPATIBLE_VERSION = "2.10.1"
+
+  unless Kamal::VERSION == KAMAL_COMPATIBLE_VERSION
+    warn "[kamal_podman] WARNING: Built for Kamal #{KAMAL_COMPATIBLE_VERSION}, " \
+         "running against #{Kamal::VERSION}. Overrides may be incompatible."
+  end
 end
 
 loader = Zeitwerk::Loader.for_gem

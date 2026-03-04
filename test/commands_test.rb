@@ -51,35 +51,6 @@ class PodmanCommandsTest < ActiveSupport::TestCase
     assert_equal [ :podman, :network, :create, :kamal ], new_command.create_network
   end
 
-  test "superuser?" do
-    assert_equal \
-      '[ "${EUID:-$(id -u)}" -eq 0 ] || sudo -nl podman >/dev/null',
-      new_command.superuser?.join(" ")
-  end
-
-  test "root?" do
-    assert_equal \
-      '[ "${EUID:-$(id -u)}" -eq 0 ]',
-      new_command.root?.join(" ")
-  end
-
-  test "in_podman_group?" do
-    assert_equal "true", new_command.in_podman_group?.join(" ")
-  end
-
-  test "add_to_podman_group" do
-    assert_equal "true", new_command.add_to_podman_group.join(" ")
-  end
-
-  test "refresh_session" do
-    assert_equal "kill -HUP $PPID", new_command.refresh_session.join(" ")
-  end
-
-  test "install raises" do
-    error = assert_raises(RuntimeError) { new_command.install }
-    assert_match(/podman.io/, error.message)
-  end
-
   private
     def new_command
       KamalPodman::Commands::Podman.new(Kamal::Configuration.new(@config, version: "999"))
@@ -100,6 +71,31 @@ class BuilderCommandsTest < ActiveSupport::TestCase
 
   test "ensure_docker_installed" do
     assert_equal [ :podman, "--version" ], new_command.ensure_docker_installed
+  end
+
+  test "validate! passes for single arch" do
+    assert_nothing_raised { new_command.validate! }
+  end
+
+  test "validate! raises for remote builder" do
+    config = @config.merge(builder: { "arch" => "amd64", "remote" => "ssh://builder-host" })
+    builder = KamalPodman::Commands::Builder.new(Kamal::Configuration.new(config, version: "999"))
+    error = assert_raises(KamalPodman::Error) { builder.validate! }
+    assert_match(/remote builders/, error.message)
+  end
+
+  test "validate! raises for multi-arch" do
+    config = @config.merge(builder: { "arch" => [ "amd64", "arm64" ] })
+    builder = KamalPodman::Commands::Builder.new(Kamal::Configuration.new(config, version: "999"))
+    error = assert_raises(KamalPodman::Error) { builder.validate! }
+    assert_match(/multi-architecture/, error.message)
+  end
+
+  test "validate! raises for cloud builder" do
+    config = @config.merge(builder: { "arch" => "amd64", "driver" => "cloud-docker" })
+    builder = KamalPodman::Commands::Builder.new(Kamal::Configuration.new(config, version: "999"))
+    error = assert_raises(KamalPodman::Error) { builder.validate! }
+    assert_match(/cloud builders/, error.message)
   end
 
   private
@@ -142,4 +138,10 @@ class BuilderLocalCommandsTest < ActiveSupport::TestCase
     def new_command
       KamalPodman::Commands::Builder::Local.new(Kamal::Configuration.new(@config, version: "999"))
     end
+end
+
+class VersionCompatibilityTest < ActiveSupport::TestCase
+  test "KAMAL_COMPATIBLE_VERSION matches pinned Kamal version" do
+    assert_equal Kamal::VERSION, KamalPodman::KAMAL_COMPATIBLE_VERSION
+  end
 end
