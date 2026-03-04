@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class KamalPodman::Cli::Server < Kamal::Cli::Server
   desc "bootstrap", "Set up Podman to run Kamal apps"
   def bootstrap

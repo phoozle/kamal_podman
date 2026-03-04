@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 Kamal::Commands::App::Logging.class_eval do
   def logs(container_id: nil, timestamps: true, since: nil, lines: nil, grep: nil, grep_options: nil)
     pipe \

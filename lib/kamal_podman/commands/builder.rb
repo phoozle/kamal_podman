@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class KamalPodman::Commands::Builder < Kamal::Commands::Builder
   def local
     @local ||= KamalPodman::Commands::Builder::Local.new(config)

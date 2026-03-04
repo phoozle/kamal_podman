@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class KamalPodman::Commander < Kamal::Commander
   def builder
     @builder ||= KamalPodman::Commands::Builder.new(config).tap(&:validate!)

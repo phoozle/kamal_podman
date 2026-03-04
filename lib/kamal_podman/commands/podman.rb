@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class KamalPodman::Commands::Podman < Kamal::Commands::Base
   # Checks the Podman client version. Fails if Podman is not installed.
   def installed?

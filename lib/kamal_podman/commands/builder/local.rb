@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 class KamalPodman::Commands::Builder::Local < Kamal::Commands::Builder::Base
   def push(export_action = "registry", tag_as_dirty: false, no_cache: false)
     combine \

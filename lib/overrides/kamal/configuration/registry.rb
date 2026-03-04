@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 Kamal::Configuration::Registry.class_eval do
   DEFAULT_REGISTRY = "docker.io"
 

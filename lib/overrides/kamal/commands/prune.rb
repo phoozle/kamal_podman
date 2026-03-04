@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 Kamal::Commands::Prune.class_eval do
   def tagged_images
     pipe \
