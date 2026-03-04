@@ -53,8 +53,26 @@ class PodmanCommandsTest < ActiveSupport::TestCase
 
   test "superuser?" do
     assert_equal \
-      '[ "${EUID:-$(id -u)}" -eq 0 ] || command -v sudo >/dev/null || command -v su >/dev/null',
+      '[ "${EUID:-$(id -u)}" -eq 0 ] || sudo -nl podman >/dev/null',
       new_command.superuser?.join(" ")
+  end
+
+  test "root?" do
+    assert_equal \
+      '[ "${EUID:-$(id -u)}" -eq 0 ]',
+      new_command.root?.join(" ")
+  end
+
+  test "in_podman_group?" do
+    assert_equal "true", new_command.in_podman_group?.join(" ")
+  end
+
+  test "add_to_podman_group" do
+    assert_equal "true", new_command.add_to_podman_group.join(" ")
+  end
+
+  test "refresh_session" do
+    assert_equal "kill -HUP $PPID", new_command.refresh_session.join(" ")
   end
 
   test "install raises" do
@@ -80,8 +98,8 @@ class BuilderCommandsTest < ActiveSupport::TestCase
     assert_kind_of KamalPodman::Commands::Builder::Local, new_command.local
   end
 
-  test "ensure_local_dependencies_installed" do
-    assert_equal [ :podman, "--version" ], new_command.ensure_local_dependencies_installed
+  test "ensure_docker_installed" do
+    assert_equal [ :podman, "--version" ], new_command.ensure_docker_installed
   end
 
   private

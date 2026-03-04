@@ -22,6 +22,10 @@ class AutoDiscoveryTest < ActiveSupport::TestCase
         case klass.name
         when "Kamal::Commands::App"
           klass.new(config, role: config.role(:web), host: "1.1.1.1")
+        when "Kamal::Commands::Proxy"
+          klass.new(config, host: "1.1.1.1")
+        when "Kamal::Commands::Accessory"
+          klass.new(config, name: config.accessories.first&.name || next)
         else
           klass.new(config)
         end

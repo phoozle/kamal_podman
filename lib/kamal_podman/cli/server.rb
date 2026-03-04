@@ -4,11 +4,21 @@ class KamalPodman::Cli::Server < Kamal::Cli::Server
     with_lock do
       missing = []
 
-      on(KAMAL.hosts | KAMAL.accessory_hosts) do |host|
+      on(KAMAL.hosts) do |host|
         unless execute(*KAMAL.podman.installed?, raise_on_non_zero_exit: false)
           if execute(*KAMAL.podman.superuser?, raise_on_non_zero_exit: false)
             info "Missing Podman on #{host}. Installing…"
             execute *KAMAL.podman.install
+
+            unless execute(*KAMAL.podman.root?, raise_on_non_zero_exit: false) ||
+                   execute(*KAMAL.podman.in_podman_group?, raise_on_non_zero_exit: false)
+              execute *KAMAL.podman.add_to_podman_group
+              begin
+                execute *KAMAL.podman.refresh_session
+              rescue IOError
+                info "Session refreshed due to group change."
+              end
+            end
           else
             missing << host
           end
@@ -16,7 +26,7 @@ class KamalPodman::Cli::Server < Kamal::Cli::Server
       end
 
       if missing.any?
-        raise "Podman is not installed on #{missing.join(", ")} and can't be automatically installed without having root access and either `wget` or `curl`. Install Docker manually: https://podman.io/docs/installation"
+        raise "Podman is not installed on #{missing.join(", ")} and can't be automatically installed without having root access. Install Podman manually: https://podman.io/docs/installation"
       end
 
       run_hook "docker-setup"

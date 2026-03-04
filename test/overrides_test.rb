@@ -10,7 +10,7 @@ class BaseOverrideTest < ActiveSupport::TestCase
 
   test "docker raises to catch missed overrides" do
     error = assert_raises(RuntimeError) { new_command.docker(:ps) }
-    assert_match /podman not supported/, error.message
+    assert_match(/podman not supported/, error.message)
   end
 
   test "podman" do
@@ -27,13 +27,13 @@ class BaseOverrideTest < ActiveSupport::TestCase
 
   test "container_id_for" do
     assert_equal \
-      "podman container ls --all --filter name=^app-web-999$ --quiet",
+      "podman container ls --all --filter 'name=^app-web-999$' --quiet",
       new_command.container_id_for(container_name: "app-web-999").join(" ")
   end
 
   test "container_id_for with only_running" do
     assert_equal \
-      "podman container ls --filter name=^app-web-999$ --quiet",
+      "podman container ls --filter 'name=^app-web-999$' --quiet",
       new_command.container_id_for(container_name: "app-web-999", only_running: true).join(" ")
   end
 
@@ -53,13 +53,13 @@ class AppOverrideTest < ActiveSupport::TestCase
 
   test "run" do
     assert_equal \
-      "podman run --detach --restart unless-stopped --name app-web-999 --network kamal -e KAMAL_CONTAINER_NAME=\"app-web-999\" -e KAMAL_VERSION=\"999\" --env-file .kamal/apps/app/env/roles/web.env --log-opt max-size=\"10m\" --label service=\"app\" --label role=\"web\" --label destination docker.io/dhh/app:999",
+      "podman run --detach --restart unless-stopped --name app-web-999 --network kamal --env KAMAL_CONTAINER_NAME=\"app-web-999\" --env KAMAL_VERSION=\"999\" --env KAMAL_HOST=\"1.1.1.1\" --env-file .kamal/apps/app/env/roles/web.env --log-opt max-size=\"10m\" --label service=\"app\" --label role=\"web\" --label destination docker.io/dhh/app:999",
       new_command.run.join(" ")
   end
 
   test "container_id_for_version" do
     assert_equal \
-      "podman container ls --all --filter name=^app-web-999$ --quiet",
+      "podman container ls --all --filter 'name=^app-web-999$' --quiet",
       new_command.container_id_for_version(999).join(" ")
   end
 
@@ -72,10 +72,10 @@ class AppOverrideTest < ActiveSupport::TestCase
   test "extract_assets" do
     assert_equal [
       :mkdir, "-p", ".kamal/apps/app/assets/extracted/web-999", "&&",
-      :podman, :stop, "-t 1", "app-web-assets", "2> /dev/null", "|| true", "&&",
-      :podman, :run, "--name", "app-web-assets", "--detach", "--rm", "--entrypoint", "sleep", "docker.io/dhh/app:999", "1000000", "&&",
-      :podman, :cp, "-L", "app-web-assets:/.", ".kamal/apps/app/assets/extracted/web-999", "&&",
-      :podman, :stop, "-t 1", "app-web-assets"
+      :podman, :container, :rm, "app-web-assets", "2> /dev/null", "|| true", "&&",
+      :podman, :container, :create, "--name", "app-web-assets", "docker.io/dhh/app:999", "&&",
+      :podman, :container, :cp, "-L", "app-web-assets:/.", ".kamal/apps/app/assets/extracted/web-999", "&&",
+      :podman, :container, :rm, "app-web-assets"
     ], new_command.extract_assets
   end
 
@@ -102,6 +102,10 @@ class AppModulesOverrideTest < ActiveSupport::TestCase
   test "App::Images overrides docker" do
     assert Kamal::Commands::App::Images.method_defined?(:docker, false)
   end
+
+  test "App::Logging overrides logs" do
+    assert Kamal::Commands::App::Logging.method_defined?(:logs, false)
+  end
 end
 
 class ProxyOverrideTest < ActiveSupport::TestCase
@@ -112,15 +116,27 @@ class ProxyOverrideTest < ActiveSupport::TestCase
     }
   end
 
-  test "run" do
+  test "start" do
     assert_equal \
-      "podman run --name kamal-proxy --network kamal --detach --restart unless-stopped --volume kamal-proxy-config:/home/kamal-proxy/.config/kamal-proxy $(cat .kamal/proxy/options || echo \"--publish 80:80 --publish 443:443 --log-opt max-size=10m\") docker.io/basecamp/kamal-proxy:v0.8.2",
-      new_command.run.join(" ")
+      "podman container start kamal-proxy",
+      new_command.start.join(" ")
+  end
+
+  test "stop" do
+    assert_equal \
+      "podman container stop kamal-proxy",
+      new_command.stop.join(" ")
+  end
+
+  test "info" do
+    assert_equal \
+      "podman ps --filter name=^kamal-proxy$",
+      new_command.info.join(" ")
   end
 
   private
     def new_command
-      Kamal::Commands::Proxy.new(Kamal::Configuration.new(@config, version: "999"))
+      Kamal::Commands::Proxy.new(Kamal::Configuration.new(@config, version: "999"), host: "1.1.1.1")
     end
 end
 
@@ -192,10 +208,8 @@ class ConfigurationOverrideTest < ActiveSupport::TestCase
     assert_equal "docker.io", new_config.registry.server
   end
 
-  test "proxy image" do
-    assert_equal \
-      "docker.io/basecamp/kamal-proxy:#{Kamal::Configuration::PROXY_MINIMUM_VERSION}",
-      new_config.proxy_image
+  test "proxy boot image default" do
+    assert_equal "docker.io/basecamp/kamal-proxy", new_config.proxy_boot.image_default
   end
 
   private

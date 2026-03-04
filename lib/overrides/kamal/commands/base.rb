@@ -8,6 +8,6 @@ Kamal::Commands::Base.class_eval do
   end
 
   def container_id_for(container_name:, only_running: false)
-    podman :container, :ls, *("--all" unless only_running), "--filter", "name=^#{container_name}$", "--quiet"
+    podman :container, :ls, *("--all" unless only_running), "--filter", "'name=^#{container_name}$'", "--quiet"
   end
 end

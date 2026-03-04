@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
   spec.files = Dir["lib/**/*", "LICENSE.txt", "README.md"]
   spec.executables = %w[kamal]
 
-  spec.add_dependency "kamal", "2.3.0"
+  spec.add_dependency "kamal", "2.10.1"
   spec.add_dependency "zeitwerk", ">= 2.6.18", "< 3.0"
   spec.add_dependency "activesupport", ">= 7.0"
 
