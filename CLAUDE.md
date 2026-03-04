@@ -6,7 +6,7 @@
 
 - **Gem name**: `kamal_podman`
 - **Current version**: 0.1.0
-- **Pinned Kamal version**: 2.3.0 (exact pin — any Kamal update may break overrides)
+- **Pinned Kamal version**: 2.10.1 (exact pin — any Kamal update may break overrides)
 - **License**: MIT
 - **Ruby**: >= 3.0.0
 
@@ -121,12 +121,23 @@ Verify that Kamal CLI commands produce `podman` output instead of `docker`.
 
 #### Integration Tests (`test/integration/`)
 
-Use Docker Compose to spin up:
-- **deployer**: Ruby container with Podman installed, runs kamal commands
-- **vm1**: Ubuntu container with Podman + SSH, acts as deployment target
+Use Docker Compose to spin up 4 services:
+- **deployer**: Ruby 3.4 container with Podman installed, runs kamal commands
+- **vm1**: Ubuntu 24.04 container with Podman + SSH, acts as deployment target
+- **registry**: Local HTTP registry (registry:2) with htpasswd auth on port 5000
 - **shared**: Generates SSH keys and TLS certs
 
-Run with: `docker compose -f test/integration/docker-compose.yml up`
+Run from host (not from inside containers):
+```bash
+ruby -Itest test/integration/main_test.rb test/integration/deploy_test.rb
+```
+
+The test framework's `setup` hook handles `docker compose up/down` automatically.
+
+**Podman-in-Docker quirks** (relevant for integration test debugging):
+- vm1 needs `cgroup_manager = "cgroupfs"`, `pids_limit = 0`, `events_logger = "file"` in containers.conf
+- kamal-proxy needs `cap-add: NET_BIND_SERVICE` in deploy.yml (Podman doesn't grant this by default unlike Docker)
+- Registry must be configured as insecure (`insecure = true`) in both deployer and vm1
 
 ### CI
 

@@ -16,7 +16,7 @@ Please note that Kamal Podman is still under development. Not all features are f
 Incomplete Features: Some Kamal commands might not translate directly to Podman's API, leading to partial functionality or differing behavior.
 Experimental: The gem is in its experimental phase, and you might encounter bugs or unexpected behaviors.
 
-Kamal base version: `2.3.0`
+Kamal base version: `2.10.1`
 
 ## Installation: 
 
@@ -43,27 +43,22 @@ After checking out the repo, run `bin/setup` to install dependencies. Then, run 
 
 ### Running Tests
 
-The project includes both unit tests and integration tests that are aligned with the upstream Kamal project:
-
 ```bash
-# Run all tests (unit + integration)
+# Run unit tests
 bin/test
 
-# Run only unit tests
-bin/test test/
-
-# Run only integration tests  
-bin/test test/integration/
-
-# Run specific integration test
-bin/test test/integration/main_test.rb --name test_config
+# Run integration tests (requires Docker/Colima)
+ruby -Itest test/integration/main_test.rb test/integration/deploy_test.rb
 ```
 
 ### Integration Tests
 
-Integration tests verify that kamal_podman works correctly with real Podman containers. These tests are structured identically to upstream Kamal's integration tests, making it easy for developers to work between both codebases.
+Integration tests verify that kamal_podman works correctly with real Podman containers, including a full E2E deploy. They use Docker Compose to orchestrate:
+- A **deployer** (Ruby 3.4 + Podman) that builds/pushes images and runs kamal
+- A **vm1** (Ubuntu 24.04 + Podman + SSH) as the deployment target
+- A local **registry** for image storage (no Docker Hub dependency)
 
-The integration tests use Docker Compose to orchestrate test infrastructure with VMs running Podman. See `test/integration/README.md` for detailed information about test alignment with upstream Kamal.
+The deploy test builds an app image, pushes to the local registry, deploys via `kamal deploy`, and verifies both the app container and kamal-proxy are running on vm1 — all using Podman, not Docker.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
