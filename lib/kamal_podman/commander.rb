@@ -1,6 +1,6 @@
 class KamalPodman::Commander < Kamal::Commander
   def builder
-    @builder ||= KamalPodman::Commands::Builder.new(config)
+    @builder ||= KamalPodman::Commands::Builder.new(config).tap(&:validate!)
   end
 
   def podman
