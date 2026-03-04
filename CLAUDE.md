@@ -24,22 +24,35 @@ The gem's architecture revolves around reopening Kamal's classes at runtime:
 
 **Load order matters.** Kamal must be fully loaded before overrides are applied.
 
-### Override Pattern
+### Override Architecture: Two Layers
 
-Every override file follows this pattern:
+**Layer 1 — Binary swap** (`overrides/kamal/commands/base.rb`):
+Overrides `docker()` on `Kamal::Commands::Base` to delegate to `podman()`. All subclasses inherit this automatically via Ruby method resolution — no per-class overrides needed for commands where the only difference is `docker` → `podman`.
 
 ```ruby
-Kamal::Commands::SomeClass.class_eval do
+Kamal::Commands::Base.class_eval do
   def docker(*args)
-    podman(*args)
+    podman(*args)        # Layer 1: binary swap, inherited by all subclasses
+  end
+
+  def podman(*args)
+    args.compact.unshift :podman
   end
 end
 ```
 
-The foundational override is `overrides/kamal/commands/base.rb`, which:
-- Adds a `podman(*args)` method to `Kamal::Commands::Base`
-- Makes `docker()` raise an error (to catch missed overrides)
-- Overrides `container_id_for` to use podman
+**Layer 2 — Method-level overrides** (remaining files in `overrides/`):
+For commands where Podman's syntax genuinely differs from Docker, individual methods are overridden on the specific class. Only add a Layer 2 override when the command flags, output format, or behavior differs — not just the binary name.
+
+| Override file | Why it exists |
+|---|---|
+| `commands/prune.rb` | Podman has no `docker image prune --filter`; rewrites to `podman image ls` + shell piping |
+| `commands/app/logging.rb` | Podman `logs` needs `2>&1` and different flag handling |
+| `configuration/registry.rb` | Podman requires explicit `docker.io/` prefix (Docker assumes it) |
+| `configuration/proxy/boot.rb` | Same `docker.io/` prefix for kamal-proxy image |
+| `cli/main.rb` | Replaces server bootstrap to check for Podman, not Docker |
+
+**Safety net:** `test/auto_discovery_test.rb` dynamically iterates all `Kamal::Commands::Base` subclasses and verifies `docker()` returns a podman command. This catches any new Kamal class added in a future version that doesn't work with the base swap.
 
 ### Key Classes
 
@@ -80,19 +93,14 @@ lib/
       cli/
         main.rb                # Replaces server subcommand
       commands/
-        base.rb                # Foundation: adds podman(), disables docker()
-        app.rb                 # docker->podman for App
+        base.rb                # Layer 1: docker()→podman() + container_id_for
         app/
-          containers.rb        # docker->podman for Containers
-          proxy.rb             # docker->podman for Proxy
-          assets.rb            # docker->podman for Assets
-          images.rb            # docker->podman for Images
-        proxy.rb               # docker->podman for Proxy commands
-        registry.rb            # docker->podman for Registry
-        prune.rb               # Rewrites prune logic for Podman
+          logging.rb           # Layer 2: Podman-specific logs/follow_logs
+        prune.rb               # Layer 2: Podman-specific prune commands
       configuration/
         registry.rb            # Default registry = docker.io
-        configuration.rb       # Proxy image with docker.io prefix
+        proxy/
+          boot.rb              # Proxy image with docker.io prefix
 ```
 
 ## Development
@@ -156,12 +164,14 @@ GitHub Actions (`.github/workflows/main.yml`):
 
 ## Guidelines for Contributors
 
-### Adding Support for a New Kamal Command
+### When a New Kamal Command is Added
 
+If the command uses `docker()` internally (most do), it automatically gets the `podman` swap via Layer 1 — **no override file needed**. The auto-discovery test verifies this.
+
+Only add a Layer 2 override if the command has Podman-specific syntax differences:
 1. Create an override file at `lib/overrides/kamal/commands/<name>.rb`
-2. Use `class_eval` to reopen the Kamal class and override `docker` → `podman`
-3. If the command has Podman-specific syntax differences (like prune), rewrite the methods entirely
-4. Add tests in `test/` to verify `podman` appears in output and `docker` does not
+2. Use `class_eval` to reopen the Kamal class and override only the methods that differ
+3. Add tests in `test/` to verify the exact command output
 
 ### Upgrading the Pinned Kamal Version
 
@@ -177,6 +187,6 @@ This is the highest-risk change. When Kamal releases a new version:
 ### Common Pitfalls
 
 - **Load order**: Never `require` override files — they must be loaded via `Dir.glob` + `load()` after Zeitwerk setup
-- **Missing overrides**: If a Kamal class calls `docker()` without an override, `Kamal::Commands::Base#docker` will raise an error — this is intentional, to catch unpatched code paths
+- **Auto-discovery test**: `test/auto_discovery_test.rb` catches any `Kamal::Commands::Base` subclass where `docker()` doesn't return a podman command — run this after Kamal upgrades
 - **Registry prefixes**: Podman needs explicit `docker.io/` for Docker Hub images — always ensure image references include the registry
 - **No buildx**: Podman doesn't have Docker buildx — `create`, `inspect_builder`, and `remove` are stubs. Only local single-arch builds are currently supported
