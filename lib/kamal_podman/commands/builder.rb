@@ -10,7 +10,7 @@ class KamalPodman::Commands::Builder < Kamal::Commands::Builder
   end
 
   def validate!
-    if config.builder.remote?
+    if config.builder.remote
       raise KamalPodman::Error, "Podman does not support remote builders. Remove the `remote` option from your builder configuration."
     end
 
