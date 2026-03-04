@@ -13,7 +13,7 @@ class KamalPodman::Cli::Server < Kamal::Cli::Server
       end
 
       if missing.any?
-        raise "Podman is not installed on #{missing.join(", ")}. " \
+        raise KamalPodman::Error, "Podman is not installed on #{missing.join(", ")}. " \
               "Install Podman manually: https://podman.io/docs/installation"
       end
 

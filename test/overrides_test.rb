@@ -85,10 +85,55 @@ class AppOverrideTest < ActiveSupport::TestCase
     end
 end
 
-class AppModulesOverrideTest < ActiveSupport::TestCase
-  test "App::Logging overrides logs" do
-    assert Kamal::Commands::App::Logging.method_defined?(:logs, false)
+class AppLoggingOverrideTest < ActiveSupport::TestCase
+  setup do
+    @config = {
+      service: "app", image: "dhh/app", registry: { "username" => "user", "password" => "pw" },
+      servers: [ "1.1.1.1", "1.1.1.2" ], builder: { "arch" => "amd64" }
+    }
   end
+
+  test "logs uses podman" do
+    assert_match \
+      /xargs podman logs --timestamps 2>&1/,
+      new_command.logs.join(" ")
+  end
+
+  test "logs with since" do
+    assert_match \
+      /xargs podman logs --timestamps --since 1h 2>&1/,
+      new_command.logs(since: "1h").join(" ")
+  end
+
+  test "logs with lines" do
+    assert_match \
+      /xargs podman logs --timestamps --tail 100 2>&1/,
+      new_command.logs(lines: 100).join(" ")
+  end
+
+  test "logs with grep" do
+    result = new_command.logs(grep: "error").join(" ")
+    assert_match(/xargs podman logs --timestamps 2>&1/, result)
+    assert_match(/grep 'error'/, result)
+  end
+
+  test "follow_logs uses podman" do
+    result = new_command.follow_logs(host: "1.1.1.1").strip
+    assert_match(/xargs podman logs --timestamps --follow 2>&1/, result)
+    assert_no_match(/xargs docker logs/, result)
+  end
+
+  test "follow_logs with grep" do
+    result = new_command.follow_logs(host: "1.1.1.1", grep: "error").strip
+    assert_match(/xargs podman logs --timestamps --follow 2>&1/, result)
+    assert_match(/grep "error"/, result)
+  end
+
+  private
+    def new_command
+      config = Kamal::Configuration.new(@config, version: "999")
+      Kamal::Commands::App.new(config, role: config.role(:web), host: "1.1.1.1")
+    end
 end
 
 class ProxyOverrideTest < ActiveSupport::TestCase
@@ -182,6 +227,115 @@ class PruneOverrideTest < ActiveSupport::TestCase
   private
     def new_command
       Kamal::Commands::Prune.new(Kamal::Configuration.new(@config, version: "999"))
+    end
+end
+
+class AppHealthCheckOverrideTest < ActiveSupport::TestCase
+  setup do
+    @config = {
+      service: "app", image: "dhh/app", registry: { "username" => "user", "password" => "pw" },
+      servers: [ "1.1.1.1" ], builder: { "arch" => "amd64" }
+    }
+  end
+
+  test "status uses podman" do
+    result = new_command.status(version: "999").join(" ")
+    assert_match(/podman container ls/, result)
+    assert_match(/xargs podman inspect --format/, result)
+    assert_no_match(/\bdocker\b/, result)
+  end
+
+  test "container_health_log uses podman" do
+    result = new_command.container_health_log(version: "999").join(" ")
+    assert_match(/podman container ls/, result)
+    assert_match(/xargs podman inspect --format/, result)
+    assert_no_match(/\bdocker\b/, result)
+  end
+
+  private
+    def new_command
+      config = Kamal::Configuration.new(@config, version: "999")
+      Kamal::Commands::App.new(config, role: config.role(:web), host: "1.1.1.1")
+    end
+end
+
+class AccessoryOverrideTest < ActiveSupport::TestCase
+  setup do
+    @config = {
+      service: "app", image: "dhh/app", registry: { "username" => "user", "password" => "pw" },
+      servers: [ "1.1.1.1" ], builder: { "arch" => "amd64" },
+      accessories: { "db" => { "image" => "mysql:8.0", "host" => "1.1.1.1", "port" => "3306",
+        "env" => { "clear" => { "MYSQL_ROOT_HOST" => "%" } } } }
+    }
+  end
+
+  test "run uses podman" do
+    result = new_command.run.join(" ")
+    assert_match(/^podman run --name app-db/, result)
+    assert_no_match(/\bdocker run\b/, result)
+  end
+
+  test "start uses podman" do
+    assert_equal \
+      "podman container start app-db",
+      new_command.start.join(" ")
+  end
+
+  test "stop uses podman" do
+    assert_equal \
+      "podman container stop app-db",
+      new_command.stop.join(" ")
+  end
+
+  test "info uses podman" do
+    result = new_command.info.join(" ")
+    assert_match(/^podman ps/, result)
+  end
+
+  test "logs uses podman" do
+    result = new_command.logs.join(" ")
+    assert_match(/podman logs app-db/, result)
+    assert_no_match(/\bdocker logs\b/, result)
+  end
+
+  test "follow_logs uses podman" do
+    result = new_command.follow_logs.strip
+    assert_match(/podman logs app-db/, result)
+    assert_no_match(/\bdocker logs\b/, result)
+  end
+
+  test "execute_in_existing_container uses podman" do
+    result = new_command.execute_in_existing_container("bash").join(" ")
+    assert_match(/^podman exec/, result)
+    assert_match(/app-db/, result)
+  end
+
+  test "execute_in_new_container uses podman" do
+    result = new_command.execute_in_new_container("bash").join(" ")
+    assert_match(/^podman run/, result)
+  end
+
+  test "pull_image uses podman" do
+    assert_equal \
+      "podman image pull mysql:8.0",
+      new_command.pull_image.join(" ")
+  end
+
+  test "remove_container uses podman" do
+    result = new_command.remove_container.join(" ")
+    assert_match(/^podman container prune --force/, result)
+  end
+
+  test "remove_image uses podman" do
+    assert_equal \
+      "podman image rm --force mysql:8.0",
+      new_command.remove_image.join(" ")
+  end
+
+  private
+    def new_command
+      config = Kamal::Configuration.new(@config, version: "999")
+      Kamal::Commands::Accessory.new(config, name: :db)
     end
 end
 
