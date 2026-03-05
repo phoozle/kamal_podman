@@ -42,7 +42,7 @@ class IntegrationTest < ActiveSupport::TestCase
   end
 
   def kamal(*commands, **options)
-    deployer_exec(:kamal, *commands, **options)
+    deployer_exec(:"kamal-podman", *commands, **options)
   end
 
   def latest_app_version

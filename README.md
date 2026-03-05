@@ -22,12 +22,22 @@ Kamal base version: `2.10.1`
 
 You can simply drop in this gem to an existing Kamal based project and start deploying with Podman instead. However you will need to run `kamal app remove` and `kamal proxy remove` to avoid any conflicts. Be aware this will completely shutdown and remove your current application.
 
+This gem installs a `kamal-podman` executable so it won't conflict with the standard `kamal` command if you have both gems installed.
+
 ```
 # Gemfile
 gem 'kamal_podman', git: 'https://github.com/phoozle/kamal_podman.git', branch: 'main'
 ```
 
 ## Usage
+Use `kamal-podman` wherever you would normally use `kamal`:
+
+```bash
+kamal-podman deploy
+kamal-podman setup
+kamal-podman app logs
+```
+
 Follow [Kamal's](https://kamal-deploy.org) official documentation for the most part.
 There will be some differences in the commands available due to the inherit nature of how Podman does things. I will begin to document these differences as I find them here.
 
