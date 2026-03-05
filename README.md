@@ -18,7 +18,7 @@ Experimental: The gem is in its experimental phase, and you might encounter bugs
 
 Kamal base version: `2.10.1`
 
-## Installation: 
+## Installation
 
 You can simply drop in this gem to an existing Kamal based project and start deploying with Podman instead. However you will need to run `kamal app remove` and `kamal proxy remove` to avoid any conflicts. Be aware this will completely shutdown and remove your current application.
 
@@ -39,11 +39,42 @@ kamal-podman app logs
 ```
 
 Follow [Kamal's](https://kamal-deploy.org) official documentation for the most part.
-There will be some differences in the commands available due to the inherit nature of how Podman does things. I will begin to document these differences as I find them here.
+There will be some differences in the commands available due to the inherent nature of how Podman does things.
+
+## Systemd Integration (Quadlet)
+
+Kamal Podman supports optional systemd integration via [Podman Quadlet](https://docs.podman.io/en/latest/markdown/podman-systemd.unit.5.html). When enabled, app, proxy, and accessory containers are managed as systemd services instead of plain `podman run` processes. This provides:
+
+- Automatic container restart on failure or reboot
+- Proper process lifecycle management via systemd
+- Integration with `journalctl` for logging
+- Rootless support with `loginctl enable-linger`
+
+### Enabling Quadlet
+
+Add `x-quadlet: true` to your `deploy.yml`:
+
+```yaml
+x-quadlet: true
+
+service: myapp
+image: myuser/myapp
+servers:
+  - 192.168.1.1
+```
+
+Without this flag, kamal_podman uses traditional `podman run/stop/start` commands — the default behavior is unchanged.
+
+### How It Works
+
+When Quadlet is enabled:
+- `kamal deploy` writes `.container` unit files to the Podman Quadlet directory and starts them via `systemctl`
+- `kamal proxy boot` manages kamal-proxy as a systemd service
+- Accessories (`kamal accessory boot`) are also systemd-managed
+- Old container unit files are automatically cleaned up during deploys
+- For rootless setups (non-root SSH user), `kamal server bootstrap` runs `loginctl enable-linger` so services survive SSH disconnection
 
 ## Roadmap
-- Complete integration of all Kamal commands with Podman.
-- Systemd integration
 - Enhance error handling and logging.
 - Increase test coverage for better reliability.
 
@@ -59,6 +90,9 @@ bin/test
 
 # Run integration tests (requires Docker/Colima)
 ruby -Itest test/integration/main_test.rb test/integration/deploy_test.rb
+
+# Run Quadlet integration test
+ruby -Itest test/integration/main_test.rb test/integration/quadlet_deploy_test.rb
 ```
 
 ### Integration Tests

@@ -51,6 +51,11 @@ For commands where Podman's syntax genuinely differs from Docker, individual met
 | `configuration/registry.rb` | Podman requires explicit `docker.io/` prefix (Docker assumes it) |
 | `configuration/proxy/boot.rb` | Same `docker.io/` prefix for kamal-proxy image |
 | `cli/main.rb` | Replaces server bootstrap to check for Podman, not Docker |
+| `cli/app/boot.rb` | Quadlet: generates `.container` files for app deploys, cleans up old units |
+| `cli/proxy/quadlet.rb` | Quadlet: proxy boot/reboot/start/stop/remove via systemd |
+| `cli/accessory/quadlet.rb` | Quadlet: accessory boot/start/stop/remove via systemd |
+| `commands/proxy/quadlet.rb` | Quadlet: proxy start/stop/start_or_run return systemctl commands |
+| `commands/accessory/quadlet.rb` | Quadlet: accessory start/stop return systemctl commands |
 
 **Safety net:** `test/auto_discovery_test.rb` dynamically iterates all `Kamal::Commands::Base` subclasses and verifies `docker()` returns a podman command. This catches any new Kamal class added in a future version that doesn't work with the base swap.
 
@@ -58,11 +63,12 @@ For commands where Podman's syntax genuinely differs from Docker, individual met
 
 | Class | Purpose |
 |---|---|
-| `KamalPodman::Commander` | Extends `Kamal::Commander`, returns Podman-aware builder/commands |
+| `KamalPodman::Commander` | Extends `Kamal::Commander`, returns Podman-aware builder/commands; provides `quadlet_enabled?` and `quadlet` accessors |
 | `KamalPodman::Commands::Podman` | Podman system commands (`installed?`, `running?`, `create_network`) |
 | `KamalPodman::Commands::Builder` | Podman-based builder with validation (rejects remote/multi-arch/cloud) |
 | `KamalPodman::Commands::Builder::Local` | `podman build` + `podman push` (stubs out buildx lifecycle) |
-| `KamalPodman::Cli::Server` | Podman-aware server bootstrap (checks for Podman, not Docker) |
+| `KamalPodman::Commands::Quadlet` | Quadlet systemd commands (`container_file_content`, `start_unit`, `stop_unit`, `daemon_reload`, file management) |
+| `KamalPodman::Cli::Server` | Podman-aware server bootstrap (checks for Podman, enables lingering for rootless Quadlet) |
 
 ### Podman-Specific Differences from Docker
 
@@ -80,11 +86,12 @@ lib/
   kamal_podman/
     version.rb                 # VERSION constant
     override.rb                # Replaces global KAMAL constant
-    commander.rb               # Custom Commander subclass
+    commander.rb               # Custom Commander subclass (+ quadlet_enabled?, quadlet accessor)
     cli/
-      server.rb                # Podman-aware server bootstrap
+      server.rb                # Podman-aware server bootstrap (+ enable-linger for rootless Quadlet)
     commands/
       podman.rb                # Podman system commands
+      quadlet.rb               # Quadlet/systemd commands and .container file generation
       builder.rb               # Builder orchestrator
       builder/
         local.rb               # Local build implementation
@@ -92,10 +99,20 @@ lib/
     kamal/
       cli/
         main.rb                # Replaces server subcommand
+        app/
+          boot.rb              # Quadlet: app deploy lifecycle (start/stop via systemd)
+        proxy/
+          quadlet.rb           # Quadlet: proxy boot/reboot/start/stop/remove via systemd
+        accessory/
+          quadlet.rb           # Quadlet: accessory boot/start/stop/remove via systemd
       commands/
         base.rb                # Layer 1: docker()→podman() + container_id_for
         app/
           logging.rb           # Layer 2: Podman-specific logs/follow_logs
+        proxy/
+          quadlet.rb           # Quadlet: proxy start/stop/start_or_run via systemctl
+        accessory/
+          quadlet.rb           # Quadlet: accessory start/stop via systemctl
         prune.rb               # Layer 2: Podman-specific prune commands
       configuration/
         registry.rb            # Default registry = docker.io
@@ -183,6 +200,29 @@ This is the highest-risk change. When Kamal releases a new version:
 4. Check for changes in method signatures that would break existing overrides
 5. Run full test suite — unit AND integration
 6. Pay special attention to `Kamal::Commands::Base`, `Kamal::Commands::Prune`, and `Kamal::Configuration`
+
+### Quadlet Override Pattern
+
+All Quadlet-specific overrides are gated behind `KAMAL.quadlet_enabled?` (checks `x-quadlet: true` in deploy.yml). Every Quadlet override method must fall back to the original when Quadlet is disabled:
+
+```ruby
+def boot
+  return original_boot unless KAMAL.quadlet_enabled?
+  # Quadlet-specific implementation...
+end
+```
+
+For Thor CLI classes, wrap `alias_method` in `no_commands {}` to prevent Thor from registering aliases as commands:
+
+```ruby
+Kamal::Cli::Proxy.class_eval do
+  no_commands do
+    alias_method :original_boot, :boot
+  end
+end
+```
+
+Quadlet-generated systemd units cannot be `enable`d/`disable`d — they are "generated" units. The `.container` file being present IS the enabled state. Always use `start_unit`/`stop_unit`, never `enable`.
 
 ### Common Pitfalls
 
