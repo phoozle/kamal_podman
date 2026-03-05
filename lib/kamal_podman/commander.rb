@@ -12,4 +12,12 @@ class KamalPodman::Commander < Kamal::Commander
   def docker
     podman
   end
+
+  def quadlet
+    @quadlet ||= KamalPodman::Commands::Quadlet.new(config)
+  end
+
+  def quadlet_enabled?
+    config.raw_config[:"x-quadlet"] == true
+  end
 end

@@ -142,6 +142,7 @@ class ProxyOverrideTest < ActiveSupport::TestCase
       service: "app", image: "dhh/app", registry: { "username" => "user", "password" => "pw" },
       servers: [ "1.1.1.1", "1.1.1.2" ], builder: { "arch" => "amd64" }
     }
+    KAMAL.stubs(:quadlet_enabled?).returns(false)
   end
 
   test "start" do
@@ -267,6 +268,7 @@ class AccessoryOverrideTest < ActiveSupport::TestCase
       accessories: { "db" => { "image" => "mysql:8.0", "host" => "1.1.1.1", "port" => "3306",
         "env" => { "clear" => { "MYSQL_ROOT_HOST" => "%" } } } }
     }
+    KAMAL.stubs(:quadlet_enabled?).returns(false)
   end
 
   test "run uses podman" do

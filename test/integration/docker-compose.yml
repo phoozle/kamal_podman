@@ -40,6 +40,9 @@ services:
       context: docker/vm
     volumes:
       - shared:/shared
+    tmpfs:
+      - /run
+      - /tmp
     ports:
       - "2222:22"
     environment:

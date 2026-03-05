@@ -17,6 +17,14 @@ class KamalPodman::Cli::Server < Kamal::Cli::Server
               "Install Podman manually: https://podman.io/docs/installation"
       end
 
+      # Enable lingering for rootless Quadlet so systemd user services
+      # survive after the SSH session disconnects
+      if KAMAL.quadlet_enabled? && KAMAL.config.ssh.user != "root"
+        on(KAMAL.hosts) do
+          execute :loginctl, "enable-linger", KAMAL.config.ssh.user
+        end
+      end
+
       run_hook "docker-setup"
     end
   end
