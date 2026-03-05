@@ -53,7 +53,10 @@ Kamal::Cli::App::Boot.class_eval do
 
   def stop_old_version(version)
     return original_stop_old_version(version) unless KAMAL.quadlet_enabled?
-    execute *KAMAL.quadlet.stop_unit(app.container_name(version)), raise_on_non_zero_exit: false
+    unit_name = app.container_name(version)
+    execute *KAMAL.quadlet.stop_unit(unit_name), raise_on_non_zero_exit: false
+    execute *KAMAL.quadlet.remove_quadlet_file(unit_name), raise_on_non_zero_exit: false
+    execute *KAMAL.quadlet.daemon_reload
     execute *app.clean_up_assets if assets?
     execute *app.clean_up_error_pages if KAMAL.config.error_pages_path
   end

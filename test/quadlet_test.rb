@@ -307,6 +307,28 @@ class QuadletCommandsTest < ActiveSupport::TestCase
     assert service_pos < install_pos
   end
 
+  test "container_file_content defaults to Restart=always" do
+    content = new_command.container_file_content(
+      unit_name: "app-web-999",
+      image: "docker.io/dhh/app:999",
+      run_args: []
+    )
+
+    assert_match(/Restart=always/, content)
+  end
+
+  test "container_file_content with restart_policy on-failure" do
+    content = new_command.container_file_content(
+      unit_name: "kamal-proxy",
+      image: "docker.io/basecamp/kamal-proxy:v0.9.0",
+      run_args: [],
+      restart_policy: "on-failure"
+    )
+
+    assert_match(/Restart=on-failure/, content)
+    assert_no_match(/Restart=always/, content)
+  end
+
   private
     def new_command(ssh_user: nil)
       config_hash = @config.dup

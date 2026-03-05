@@ -20,7 +20,7 @@ class KamalPodman::Commands::Quadlet < Kamal::Commands::Base
   # run_args: everything after [:podman, :run] from the command array
   # image: the container image (e.g. "docker.io/dhh/app:999")
   # cmd: optional command to run (e.g. "bin/jobs")
-  def container_file_content(unit_name:, image:, run_args:, cmd: nil)
+  def container_file_content(unit_name:, image:, run_args:, cmd: nil, restart_policy: "always")
     directives = KamalPodman::Commands::Quadlet::ArgParser.parse(run_args)
     resolve_relative_paths!(directives)
     exec_line = "Exec=#{cmd}\n" if cmd.present?
@@ -35,7 +35,7 @@ class KamalPodman::Commands::Quadlet < Kamal::Commands::Base
       #{directives.join("\n")}
       #{exec_line}
       [Service]
-      Restart=always
+      Restart=#{restart_policy}
       RestartSec=5s
       WorkingDirectory=#{working_directory}
 
