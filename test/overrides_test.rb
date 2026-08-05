@@ -158,7 +158,7 @@ class ProxyOverrideTest < ActiveSupport::TestCase
 
   test "info" do
     assert_equal \
-      "podman ps --filter name=^kamal-proxy$",
+      "podman ps --filter 'name=^kamal-proxy$'",
       new_command.info.join(" ")
   end
 
@@ -361,8 +361,51 @@ class ConfigurationOverrideTest < ActiveSupport::TestCase
     end
 end
 
-class CliMainOverrideTest < ActiveSupport::TestCase
-  test "server subcommand" do
-    assert_equal KamalPodman::Cli::Server, Kamal::Cli::Main.subcommand_classes["server"]
+class CliServerOverrideTest < ActiveSupport::TestCase
+  # `kamal-podman setup` invokes "kamal:cli:server:bootstrap", which Thor resolves by
+  # namespace rather than through Kamal::Cli::Main's subcommand registration. Both routes
+  # have to land on the same podman-aware class, and Kamal::Cli::Base#command requires that
+  # class to be the one registered as the `server` subcommand.
+  test "server subcommand is the class the setup namespace resolves to" do
+    klass, command = Thor::Util.find_class_and_command_by_namespace("kamal:cli:server:bootstrap")
+
+    assert_equal Kamal::Cli::Server, klass
+    assert_equal "bootstrap", command
+    assert_equal klass, Kamal::Cli::Main.subcommand_classes["server"]
+  end
+
+  test "bootstrap is described in terms of podman" do
+    assert_match(/podman/i, Kamal::Cli::Server.commands["bootstrap"].description)
+  end
+
+  test "server subcommand is described in terms of podman exactly once" do
+    assert_match(/podman/i, Kamal::Cli::Main.commands["server"].description)
+    assert_equal [ "server" ], Kamal::Cli::Main.subcommands.select { |name| name == "server" }
+  end
+
+  test "bootstrap checks for podman rather than installing docker" do
+    error = assert_raises(KamalPodman::Error) do
+      stdouted { Kamal::Cli::Server.start([ "bootstrap", "-c", "test/fixtures/deploy_simple.yml" ]) }
+    end
+
+    assert_match(/Podman is not installed/, error.message)
+  end
+
+  test "setup bootstraps podman before anything else" do
+    error = assert_raises(KamalPodman::Error) do
+      stdouted { Kamal::Cli::Main.start([ "setup", "-c", "test/fixtures/deploy_simple.yml" ]) }
+    end
+
+    assert_match(/Podman is not installed/, error.message)
+  end
+
+  test "bootstrap runs the podman check on every host" do
+    SSHKit::Backend::Printer.any_instance.stubs(:execute).returns(true)
+    SSHKit::Backend::Printer.any_instance.expects(:execute)
+      .with(:podman, "-v", raise_on_non_zero_exit: false)
+      .twice
+      .returns(true)
+
+    stdouted { Kamal::Cli::Server.start([ "bootstrap", "-c", "test/fixtures/deploy_simple.yml" ]) }
   end
 end

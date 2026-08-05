@@ -7,7 +7,7 @@ require "kamal"
 module KamalPodman
   class Error < StandardError; end
 
-  KAMAL_COMPATIBLE_VERSION = "2.10.1"
+  KAMAL_COMPATIBLE_VERSION = "2.12.0"
 
   unless Kamal::VERSION == KAMAL_COMPATIBLE_VERSION
     warn "[kamal_podman] WARNING: Built for Kamal #{KAMAL_COMPATIBLE_VERSION}, " \

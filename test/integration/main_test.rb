@@ -29,10 +29,11 @@ class MainTest < IntegrationTest
     puts "DEBUG: kamal server --help for gem loading test: #{result.inspect}" if ENV["DEBUG"]
     assert_match /podman/i, result.downcase
 
-    # Test that KamalPodman::Cli::Server exists
-    result = deployer_exec("ruby -e 'require \"kamal_podman\"; puts KamalPodman::Cli::Server.class'", capture: true)
-    puts "DEBUG: KamalPodman::Cli::Server check: #{result.inspect}" if ENV["DEBUG"]
-    assert_match /Class/, result
+    # Test that the bootstrap override is applied to Kamal::Cli::Server itself, which is
+    # what `kamal-podman setup` resolves to via Thor's namespace lookup
+    result = deployer_exec("ruby -e 'require \"kamal_podman\"; puts Kamal::Cli::Server.commands[\"bootstrap\"].description'", capture: true)
+    puts "DEBUG: bootstrap description check: #{result.inspect}" if ENV["DEBUG"]
+    assert_match /podman/i, result.downcase
   end
 
   test "config" do

@@ -6,7 +6,7 @@
 
 - **Gem name**: `kamal_podman`
 - **Current version**: 0.1.0
-- **Pinned Kamal version**: 2.10.1 (exact pin — any Kamal update may break overrides)
+- **Pinned Kamal version**: 2.12.0 (exact pin — any Kamal update may break overrides)
 - **License**: MIT
 - **Ruby**: >= 3.0.0
 
@@ -50,7 +50,7 @@ For commands where Podman's syntax genuinely differs from Docker, individual met
 | `commands/app/logging.rb` | Podman `logs` needs `2>&1` and different flag handling |
 | `configuration/registry.rb` | Podman requires explicit `docker.io/` prefix (Docker assumes it) |
 | `configuration/proxy/boot.rb` | Same `docker.io/` prefix for kamal-proxy image |
-| `cli/main.rb` | Replaces server bootstrap to check for Podman, not Docker |
+| `cli/server.rb` | Replaces `bootstrap` to check for Podman, not install Docker |
 
 **Safety net:** `test/auto_discovery_test.rb` dynamically iterates all `Kamal::Commands::Base` subclasses and verifies `docker()` returns a podman command. This catches any new Kamal class added in a future version that doesn't work with the base swap.
 
@@ -62,7 +62,6 @@ For commands where Podman's syntax genuinely differs from Docker, individual met
 | `KamalPodman::Commands::Podman` | Podman system commands (`installed?`, `running?`, `create_network`) |
 | `KamalPodman::Commands::Builder` | Podman-based builder with validation (rejects remote/multi-arch/cloud) |
 | `KamalPodman::Commands::Builder::Local` | `podman build` + `podman push` (stubs out buildx lifecycle) |
-| `KamalPodman::Cli::Server` | Podman-aware server bootstrap (checks for Podman, not Docker) |
 
 ### Podman-Specific Differences from Docker
 
@@ -81,8 +80,6 @@ lib/
     version.rb                 # VERSION constant
     override.rb                # Replaces global KAMAL constant
     commander.rb               # Custom Commander subclass
-    cli/
-      server.rb                # Podman-aware server bootstrap
     commands/
       podman.rb                # Podman system commands
       builder.rb               # Builder orchestrator
@@ -91,9 +88,9 @@ lib/
   overrides/                   # NOT autoloaded by Zeitwerk — loaded manually via Dir.glob
     kamal/
       cli/
-        main.rb                # Replaces server subcommand
+        server.rb              # Podman-aware bootstrap (patched onto Kamal::Cli::Server)
       commands/
-        base.rb                # Layer 1: docker()→podman() + container_id_for
+        base.rb                # Layer 1: docker() → podman()
         app/
           logging.rb           # Layer 2: Podman-specific logs/follow_logs
         prune.rb               # Layer 2: Podman-specific prune commands
@@ -135,9 +132,11 @@ Use Docker Compose to spin up 4 services:
 - **registry**: Local HTTP registry (registry:2) with htpasswd auth on port 5000
 - **shared**: Generates SSH keys and TLS certs
 
-Run from host (not from inside containers):
+Run from host (not from inside containers). Ruby only executes the first script argument —
+passing both files runs `main_test.rb` alone and silently skips `deploy_test.rb`:
 ```bash
-ruby -Itest test/integration/main_test.rb test/integration/deploy_test.rb
+ruby -Itest test/integration/main_test.rb
+ruby -Itest test/integration/deploy_test.rb
 ```
 
 The test framework's `setup` hook handles `docker compose up/down` automatically.
