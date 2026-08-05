@@ -136,6 +136,53 @@ class AppLoggingOverrideTest < ActiveSupport::TestCase
     end
 end
 
+# Docker treats "restarting" as an active state; podman rejects the filter and writes the
+# error to stderr, so these lookups returned empty instead of failing — Kamal then concluded
+# nothing was running during boot, stop, logs and version.
+class AppActiveStatusOverrideTest < ActiveSupport::TestCase
+  setup do
+    @config = {
+      service: "app", image: "dhh/app", registry: { "username" => "user", "password" => "pw" },
+      servers: [ "1.1.1.1" ], builder: { "arch" => "amd64" }
+    }
+  end
+
+  test "active statuses exclude restarting" do
+    assert_equal [ :running ], Kamal::Commands::App::ACTIVE_DOCKER_STATUSES
+  end
+
+  test "current_running_container_id filters on running only" do
+    result = new_command.current_running_container_id.join(" ")
+    assert_match(/--filter status=running/, result)
+    assert_no_match(/status=restarting/, result)
+  end
+
+  test "current_running_version filters on running only" do
+    assert_no_match(/status=restarting/, new_command.current_running_version.join(" "))
+  end
+
+  test "stop filters on running only" do
+    assert_no_match(/status=restarting/, new_command.stop.join(" "))
+  end
+
+  private
+    def new_command
+      config = Kamal::Configuration.new(@config, version: "999")
+      Kamal::Commands::App.new(config, role: config.role(:web), host: "1.1.1.1")
+    end
+end
+
+class BaseInstallCheckOverrideTest < ActiveSupport::TestCase
+  test "ensure_docker_installed drops the buildx probe podman cannot satisfy" do
+    config = Kamal::Configuration.new({
+      service: "app", image: "dhh/app", registry: { "username" => "user", "password" => "pw" },
+      servers: [ "1.1.1.1" ], builder: { "arch" => "amd64" }
+    }, version: "999")
+
+    assert_equal "podman --version", Kamal::Commands::Base.new(config).ensure_docker_installed.flatten.join(" ")
+  end
+end
+
 class ProxyOverrideTest < ActiveSupport::TestCase
   setup do
     @config = {
@@ -188,6 +235,12 @@ class RegistryOverrideTest < ActiveSupport::TestCase
       new_command.logout.join(" ")
   end
 
+  test "local registry setup names the image explicitly" do
+    result = new_command.setup.join(" ")
+    assert_match(%r{docker\.io/library/registry:3}, result)
+    assert_no_match(/ registry:3/, result)
+  end
+
   private
     def new_command
       Kamal::Commands::Registry.new(Kamal::Configuration.new(@config))
@@ -216,12 +269,18 @@ class PruneOverrideTest < ActiveSupport::TestCase
 
   test "app containers" do
     assert_equal \
-      "podman ps -q -a --filter label=service=app --filter status=created --filter status=exited --filter status=dead | tail -n +6 | while read container_id; do podman rm $container_id; done",
+      "podman ps -q -a --filter label=service=app --filter status=created --filter status=exited | tail -n +6 | while read container_id; do podman rm $container_id; done",
       new_command.app_containers(retain: 5).join(" ")
 
     assert_equal \
-      "podman ps -q -a --filter label=service=app --filter status=created --filter status=exited --filter status=dead | tail -n +4 | while read container_id; do podman rm $container_id; done",
+      "podman ps -q -a --filter label=service=app --filter status=created --filter status=exited | tail -n +4 | while read container_id; do podman rm $container_id; done",
       new_command.app_containers(retain: 3).join(" ")
+  end
+
+  # Podman rejects status=dead. As the head of a pipe its failure is swallowed — the
+  # pipeline still exits 0, so pruning reported success while removing nothing.
+  test "app containers omits the docker-only dead status" do
+    assert_no_match(/status=dead/, new_command.app_containers(retain: 5).join(" "))
   end
 
   private

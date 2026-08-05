@@ -5,8 +5,10 @@ class KamalPodman::Commands::Builder < Kamal::Commands::Builder
     @local ||= KamalPodman::Commands::Builder::Local.new(config)
   end
 
-  def ensure_docker_installed
-    podman "--version"
+  # Upstream strips the Kamal namespace to label the builder; ours lives under KamalPodman,
+  # so without this `kamal-podman build details` reports the whole class path.
+  def name
+    target.class.to_s.remove("KamalPodman::Commands::Builder::").underscore.inquiry
   end
 
   def validate!
@@ -20,6 +22,13 @@ class KamalPodman::Commands::Builder < Kamal::Commands::Builder
 
     if config.builder.cloud?
       raise KamalPodman::Error, "Podman does not support cloud builders. Remove the cloud driver from your builder configuration."
+    end
+
+    # Pack builds through the `pack` CLI, which writes the image into the Docker daemon.
+    # The subsequent push would look for it in Podman's store and not find it, so reject
+    # this at configuration time rather than failing mid-deploy.
+    if config.builder.pack?
+      raise KamalPodman::Error, "Podman does not support pack (buildpack) builders. Remove the `pack` option from your builder configuration."
     end
   end
 end

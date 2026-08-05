@@ -16,6 +16,13 @@ Kamal::Commands::Prune.class_eval do
   end
 
   private
+    # Podman rejects `status=dead` ("unknown container state"). Because the failing command
+    # is the head of a pipe, the pipeline still exits 0 — so pruning silently removed
+    # nothing and reported success. Podman's terminal states here are created and exited.
+    def stopped_containers_filters
+      [ "created", "exited" ].flat_map { |status| [ "--filter", "status=#{status}" ] }
+    end
+
     def active_image_list
       # Pull the images that are used by any containers
       # Append repo:latest - to avoid deleting the latest tag

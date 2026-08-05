@@ -14,6 +14,18 @@ class DeployTest < IntegrationTest
     assert_container_running host: :vm1, name: "kamal-proxy"
   end
 
+  # Exercises Kamal's own container lookup rather than querying podman directly. That path
+  # runs through `podman ps --filter status=...`, which silently returned nothing when the
+  # filter included docker-only states — so a deploy could not see what was already running.
+  test "app version sees the running container through kamal's own lookup" do
+    version = latest_app_version
+
+    kamal :deploy
+
+    output = kamal :app, :version, capture: true
+    assert_match /#{version}/, output
+  end
+
   test "deploy uses podman not docker" do
     output = kamal :deploy, "--verbose", capture: true
 
