@@ -16,7 +16,7 @@ Please note that Kamal Podman is still under development. Not all features are f
 Incomplete Features: Some Kamal commands might not translate directly to Podman's API, leading to partial functionality or differing behavior.
 Experimental: The gem is in its experimental phase, and you might encounter bugs or unexpected behaviors.
 
-Kamal base version: `2.10.1`
+Kamal base version: `2.12.0`
 
 ## Installation: 
 

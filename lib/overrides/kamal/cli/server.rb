@@ -1,9 +1,15 @@
 # frozen_string_literal: true
 
-class KamalPodman::Cli::Server < Kamal::Cli::Server
+# Patch bootstrap on Kamal::Cli::Server itself rather than registering a subclass as the
+# `server` subcommand. `kamal-podman setup` reaches bootstrap through Thor's namespace
+# lookup ("kamal:cli:server:bootstrap"), which resolves to Kamal::Cli::Server and would
+# bypass a subclass entirely. Kamal::Cli::Base#command also looks the running class up in
+# Kamal::Cli::Main.subcommand_classes, so swapping that registration breaks every command
+# wrapped in `modify`.
+Kamal::Cli::Server.class_eval do
   desc "bootstrap", "Set up Podman to run Kamal apps"
   def bootstrap
-    with_lock do
+    modify(lock: true) do
       missing = []
 
       on(KAMAL.hosts) do |host|
