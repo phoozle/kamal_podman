@@ -46,13 +46,28 @@ For commands where Podman's syntax genuinely differs from Docker, individual met
 
 | Override file | Why it exists |
 |---|---|
-| `commands/prune.rb` | Podman has no `docker image prune --filter`; rewrites to `podman image ls` + shell piping |
+| `commands/prune.rb` | Podman has no `docker image prune --filter`; rewrites to `podman image ls` + shell piping. Also drops `status=dead` |
+| `commands/app.rb` | `ACTIVE_DOCKER_STATUSES` drops `restarting` — not a Podman container state |
 | `commands/app/logging.rb` | Podman `logs` needs `2>&1` and different flag handling |
+| `commands/base.rb` | Layer 1 swap, plus `ensure_docker_installed` drops the `buildx` probe |
+| `commands/registry.rb` | Local registry image needs the explicit `docker.io/library/` prefix |
 | `configuration/registry.rb` | Podman requires explicit `docker.io/` prefix (Docker assumes it) |
 | `configuration/proxy/boot.rb` | Same `docker.io/` prefix for kamal-proxy image |
 | `cli/server.rb` | Replaces `bootstrap` to check for Podman, not install Docker |
 
-**Safety net:** `test/auto_discovery_test.rb` dynamically iterates all `Kamal::Commands::Base` subclasses and verifies `docker()` returns a podman command. This catches any new Kamal class added in a future version that doesn't work with the base swap.
+**Podman rejects some Docker syntax outright.** Container states are the main trap: Docker's
+`restarting`, `dead`, and `stopping` are not valid Podman states, and `podman ps --filter
+status=<invalid>` fails with `unknown container state`. When such a command heads a pipe the
+error goes to stderr and the pipeline still exits 0 — so the failure is silent. Podman also
+has no `buildx` or `context` subcommand.
+
+**Safety nets:** `test/auto_discovery_test.rb` holds two. `AutoDiscoveryTest` iterates all
+`Kamal::Commands::Base` subclasses and verifies `docker()` returns a podman command — this
+catches any new Kamal class that doesn't work with the base swap. `PodmanSyntaxTest` goes
+further: it calls every public command-building method on every command class and asserts the
+emitted string contains no Docker-only syntax (`buildx`, `context`, invalid `status=` filters).
+"Starts with podman" is not the same as "valid podman", and the second test is what catches
+that. Run both after every Kamal upgrade.
 
 ### Key Classes
 
@@ -90,10 +105,12 @@ lib/
       cli/
         server.rb              # Podman-aware bootstrap (patched onto Kamal::Cli::Server)
       commands/
-        base.rb                # Layer 1: docker() → podman()
+        base.rb                # Layer 1: docker() → podman(); no-buildx install check
+        app.rb                 # Layer 2: active container states (no `restarting`)
         app/
           logging.rb           # Layer 2: Podman-specific logs/follow_logs
-        prune.rb               # Layer 2: Podman-specific prune commands
+        prune.rb               # Layer 2: Podman-specific prune commands (no `dead`)
+        registry.rb            # Layer 2: local registry image with docker.io prefix
       configuration/
         registry.rb            # Default registry = docker.io
         proxy/

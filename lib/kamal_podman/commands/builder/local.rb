@@ -13,6 +13,12 @@ class KamalPodman::Commands::Builder::Local < Kamal::Commands::Builder::Base
       podman(:push, config.absolute_image)
   end
 
+  # Upstream lists build backends with `docker context ls && docker buildx ls`; Podman has
+  # neither subcommand. `podman version` is the closest equivalent diagnostic.
+  def info
+    podman :version
+  end
+
   def create; end
   def inspect_builder; end
   def remove; end

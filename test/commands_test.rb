@@ -98,9 +98,30 @@ class BuilderCommandsTest < ActiveSupport::TestCase
     assert_match(/cloud builders/, error.message)
   end
 
+  # pack builds through the pack CLI into the Docker daemon; the push would then look for
+  # the image in podman's store and not find it. Reject at config time, not mid-deploy.
+  test "validate! raises for pack builder" do
+    error = assert_raises(KamalPodman::Error) { pack_builder.validate! }
+    assert_match(/pack \(buildpack\) builders/, error.message)
+  end
+
+  test "pack builder would otherwise fall through to the docker pack target" do
+    assert_equal Kamal::Commands::Builder::Pack, pack_builder.target.class
+  end
+
+  test "name reports the podman builder without its namespace" do
+    assert_equal "local", new_command.name
+    assert_predicate new_command.name, :local?
+  end
+
   private
     def new_command
       KamalPodman::Commands::Builder.new(Kamal::Configuration.new(@config, version: "999"))
+    end
+
+    def pack_builder
+      config = @config.merge(builder: { "arch" => "amd64", "pack" => { "builder" => "heroku/builder:24", "buildpacks" => [ "heroku/ruby" ] } })
+      KamalPodman::Commands::Builder.new(Kamal::Configuration.new(config, version: "999"))
     end
 end
 
@@ -132,6 +153,11 @@ class BuilderLocalCommandsTest < ActiveSupport::TestCase
 
   test "remove is a no-op" do
     assert_nil new_command.remove
+  end
+
+  # Upstream is `docker context ls && docker buildx ls`; podman has neither subcommand.
+  test "info reports podman version instead of buildx builders" do
+    assert_equal [ :podman, :version ], new_command.info
   end
 
   private
