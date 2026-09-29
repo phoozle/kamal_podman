@@ -73,7 +73,7 @@ class AppOverrideTest < ActiveSupport::TestCase
       :mkdir, "-p", ".kamal/apps/app/assets/extracted/web-999", "&&",
       :podman, :container, :rm, "app-web-assets", "2> /dev/null", "|| true", "&&",
       :podman, :container, :create, "--name", "app-web-assets", "docker.io/dhh/app:999", "&&",
-      :podman, :container, :cp, "-L", "app-web-assets:/.", ".kamal/apps/app/assets/extracted/web-999", "&&",
+      :podman, :container, :cp, "app-web-assets:/.", ".kamal/apps/app/assets/extracted/web-999", "&&",
       :podman, :container, :rm, "app-web-assets"
     ], new_command.extract_assets
   end
